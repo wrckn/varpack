@@ -1,0 +1,38 @@
+[package]
+name = "varpack"
+version = "0.1.0"
+authors = ["Daniel Wanner <daniel.wanner@pm.me>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "varpack"
+path = "src/varpack/main.rs"
+
+[[bin]]
+name = "varpack-gtk"
+path = "src/varpack-gtk/main.rs"
+required-features = [ "gtk-gui" ]
+
+[features]
+gtk-gui = [
+    "gtk",
+    "gio"
+]
+
+[dependencies]
+# CLI Parsing
+clap = "2.33.1"
+# String error
+string-error = "0.1.0"
+# vapor_archive base library
+vapor_archive = "0.1.0"
+
+[dependencies.gtk]
+version = "0.8.1"
+optional = true
+
+[dependencies.gio]
+version = "0.8.1"
+optional = true
