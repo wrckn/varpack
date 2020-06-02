@@ -1,3 +1,5 @@
+use super::ptr::Ptr;
+
 use std::{
     error::Error,
     rc::Rc,
@@ -25,9 +27,13 @@ use gtk::{
     GridBuilder,
     Builder,
     Align,
+    Dialog,
+    AboutDialog,
     MenuBarBuilder,
     TreeViewBuilder,
+    MenuItem,
     TreeStore,
+    ResponseType,
     PackDirection,
     Orientation,
     LabelBuilder,
@@ -41,49 +47,62 @@ use string_error::{
     static_err
 };
 
-/// A wrapper type for Rc<RefCell<T>>
-struct GRc<T> {
-    inner_rc: Rc<RefCell<T>>
+/// The main.glade file
+pub static MAIN_GLADE: &'static str = include_str!("glade/main.glade");
+
+/// The application state struct
+#[derive(Clone)]
+pub struct AppState {
+    pub window_main: Window,
+    pub dialog_about: AboutDialog,
+    pub dialog_loading: Dialog,
+    pub tree_store: Option<TreeStore>
 }
 
-impl<T> GRc<T> {
-    /// Creates a new Rc<RefCell<T>> wrapper
-    pub fn new(item: T) -> Self {
+impl AppState {
+    pub fn new(window_main: Window, dialog_about: AboutDialog, dialog_loading: Dialog) -> Self {
         Self {
-            inner_rc: Rc::new(RefCell::new(item))
+            window_main: window_main,
+            dialog_about: dialog_about,
+            dialog_loading: dialog_loading,
+            tree_store: None
         }
     }
-
-    /// Get an immutable reference to the content
-    pub fn get<'r>(&'r self) -> Ref<'r, T> {
-        self.inner_rc.as_ref().borrow()
-    }
-    
-    /// Get a mutable reference to the content
-    pub fn get_mut<'r>(&'r self) -> RefMut<'r, T> {
-        self.inner_rc.as_ref().borrow_mut()
-    }
 }
 
-/// The app.glade file
-pub static WINDOW_GLADE: &'static str = include_str!("app.glade");
-
 /// Create application
-pub fn create_app(title: &'static str, size: (i32, i32)) -> Result<Application, Box<dyn Error>> {
+pub fn create_app() -> Result<Application, Box<dyn Error>> {
     let app = Application::new(
         Some("space.wrckn.varpack-gtk"),
         ApplicationFlags::FLAGS_NONE
     )?;
 
-    let builder = Builder::new_from_string(WINDOW_GLADE);
-    let window: Window = builder.get_object("window")
-        .ok_or(static_err("Corrupt app.glade file!"))?;
+    let builder = Builder::new_from_string(MAIN_GLADE);
+    let main_window: Window = builder.get_object("window_main")
+        .ok_or(static_err("Corrupt main.glade file!"))?;
+    let dialog_about: AboutDialog = builder.get_object("dialog_about")
+        .ok_or(static_err("Corrupt main.glade file!"))?;
+    let dialog_loading: Dialog = builder.get_object("dialog_loading")
+        .ok_or(static_err("Corrupt main.glade file!"))?;
+    let menu_help_about: MenuItem = builder.get_object("menu_help_about")
+        .ok_or(static_err("Corrupt main.glade file!"))?;
 
-
+    let app_state = Ptr::new(AppState::new(main_window, dialog_about, dialog_loading));
+    
     app.connect_activate(move |app| {
-        app.add_window(&window);
-        window.show_all();
-        
+        app.add_window(&app_state.get().window_main);
+        app_state.get().window_main.show_all();
+
+        {
+            let app_state = app_state.clone();
+            menu_help_about.connect_activate(move |_item| {
+                let res = app_state.get().dialog_about.run();
+                match res {
+                    ResponseType::DeleteEvent => app_state.get().dialog_about.hide(),
+                    _ => {}
+                };
+            });
+        }
     });
 
     Ok(app)
@@ -152,7 +171,7 @@ pub fn build_window(application: &Application, title: &str, size: (i32, i32)) {
 
 /// Starts the GTK app
 pub fn run_app() -> Result<(), Box<dyn Error>> {
-    let app = create_app("varpack-gtk", (800, 600))?;
+    let app = create_app()?;
     app.run(&std::env::args().collect::<Vec<_>>());
     Ok(())
 }

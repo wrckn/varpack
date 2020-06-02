@@ -1,6 +1,9 @@
 /// App module, containing GTK-related GUI code
 pub mod app;
 
+/// Ptr module
+pub mod ptr;
+
 use std::{
     error::Error
 };

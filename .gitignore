@@ -1,3 +1,2 @@
 target/
 .vscode/
-src/varpack-gtk/*app.glade*
