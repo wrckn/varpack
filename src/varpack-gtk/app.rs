@@ -1,13 +1,29 @@
 use std::{
-    error::Error
+    error::Error,
+    rc::Rc,
+    cell::{
+        Ref,
+        RefMut,
+        RefCell
+    },
+    convert::{
+        AsMut,
+        AsRef
+    },
+    ops::{
+        Deref,
+        DerefMut
+    }
 };
 
 use gtk::{
     prelude::*,
     ApplicationWindowBuilder,
     Application,
+    Window,
     BoxBuilder,
     GridBuilder,
+    Builder,
     Align,
     MenuBarBuilder,
     TreeViewBuilder,
@@ -21,6 +37,36 @@ use gio::{
     prelude::*,
     ApplicationFlags
 };
+use string_error::{
+    static_err
+};
+
+/// A wrapper type for Rc<RefCell<T>>
+struct GRc<T> {
+    inner_rc: Rc<RefCell<T>>
+}
+
+impl<T> GRc<T> {
+    /// Creates a new Rc<RefCell<T>> wrapper
+    pub fn new(item: T) -> Self {
+        Self {
+            inner_rc: Rc::new(RefCell::new(item))
+        }
+    }
+
+    /// Get an immutable reference to the content
+    pub fn get<'r>(&'r self) -> Ref<'r, T> {
+        self.inner_rc.as_ref().borrow()
+    }
+    
+    /// Get a mutable reference to the content
+    pub fn get_mut<'r>(&'r self) -> RefMut<'r, T> {
+        self.inner_rc.as_ref().borrow_mut()
+    }
+}
+
+/// The app.glade file
+pub static WINDOW_GLADE: &'static str = include_str!("app.glade");
 
 /// Create application
 pub fn create_app(title: &'static str, size: (i32, i32)) -> Result<Application, Box<dyn Error>> {
@@ -29,12 +75,24 @@ pub fn create_app(title: &'static str, size: (i32, i32)) -> Result<Application, 
         ApplicationFlags::FLAGS_NONE
     )?;
 
-    app.connect_activate(move |app| build_window(app, title, size));
+    let builder = Builder::new_from_string(WINDOW_GLADE);
+    let window: Window = builder.get_object("window")
+        .ok_or(static_err("Corrupt app.glade file!"))?;
+
+
+    app.connect_activate(move |app| {
+        app.add_window(&window);
+        window.show_all();
+        
+    });
 
     Ok(app)
 }
 
+/// Loads the GTK window from a .glade file
+
 /// Builds the GTK window
+#[deprecated = "Use the app.glade file"]
 pub fn build_window(application: &Application, title: &str, size: (i32, i32)) {
     let menu_bar = MenuBarBuilder::default()
         .valign(Align::Start)
