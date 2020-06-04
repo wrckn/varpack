@@ -1,3 +1,5 @@
+extern crate vapor_archive as var;
+
 /// App module, containing GTK-related GUI code
 pub mod app;
 

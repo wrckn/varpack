@@ -3,6 +3,7 @@ use super::ptr::Ptr;
 use std::{
     error::Error,
     rc::Rc,
+    fs::File,
     cell::{
         Ref,
         RefMut,
@@ -46,17 +47,19 @@ use gio::{
 use string_error::{
     static_err
 };
-
+use var::{
+    VarWriter
+};
 /// The main.glade file
 pub static MAIN_GLADE: &'static str = include_str!("glade/main.glade");
 
 /// The application state struct
-#[derive(Clone)]
 pub struct AppState {
     pub window_main: Window,
     pub dialog_about: AboutDialog,
     pub dialog_loading: Dialog,
-    pub tree_store: Option<TreeStore>
+    pub tree_store: Option<TreeStore>,
+    pub archive: Option<VarWriter<File>>
 }
 
 impl AppState {
@@ -65,7 +68,8 @@ impl AppState {
             window_main: window_main,
             dialog_about: dialog_about,
             dialog_loading: dialog_loading,
-            tree_store: None
+            tree_store: None,
+            archive: None
         }
     }
 }
@@ -94,7 +98,7 @@ pub fn create_app() -> Result<Application, Box<dyn Error>> {
         app_state.get().window_main.show_all();
 
         {
-            let app_state = app_state.clone();
+            let app_state = app_state.clone_ptr();
             menu_help_about.connect_activate(move |_item| {
                 let res = app_state.get().dialog_about.run();
                 match res {
@@ -108,7 +112,6 @@ pub fn create_app() -> Result<Application, Box<dyn Error>> {
     Ok(app)
 }
 
-/// Loads the GTK window from a .glade file
 
 /// Builds the GTK window
 #[deprecated = "Use the app.glade file"]

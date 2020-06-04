@@ -17,7 +17,7 @@ required-features = [ "gtk-gui" ]
 
 [features]
 gtk-gui = [
-    "gtk",
+    "gtk/v3_22",
     "gio"
 ]
 
